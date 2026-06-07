@@ -45,8 +45,15 @@ class DatabaseSeeder extends Seeder
             'Romadhon', 'Syawwal', 'Dzulqo\'dah', 'Dzulhijjah'
         ];
 
+        $usersToInsert = [];
+        $studentsToInsert = [];
         $yearliesToInsert = [];
         $monthliesToInsert = [];
+
+        // Users auto-increment starts at 2 (since Admin is ID 1)
+        $nextUserId = 2;
+        // Students auto-increment starts at 1
+        $nextStudentId = 1;
 
         while (($row = fgetcsv($file)) !== false) {
             if (count($row) < 22 || empty($row[0])) continue;
@@ -60,25 +67,29 @@ class DatabaseSeeder extends Seeder
             $totalKekuranganAll = (int) preg_replace('/[^0-9]/', '', $row[20]);
             $totalSeharusnyaAll = (int) preg_replace('/[^0-9]/', '', $row[21]);
 
-            // We must insert User and Student row by row to get the IDs
-            $userId = \Illuminate\Support\Facades\DB::table('users')->insertGetId([
+            $currentUserId = $nextUserId++;
+            $currentStudentId = $nextStudentId++;
+
+            $usersToInsert[] = [
+                'id' => $currentUserId,
                 'name' => $name,
                 'username' => $username,
                 'password' => Hash::make($password),
                 'role' => 'murid',
                 'created_at' => now(),
                 'updated_at' => now(),
-            ]);
+            ];
 
-            $studentId = \Illuminate\Support\Facades\DB::table('students')->insertGetId([
-                'user_id' => $userId,
+            $studentsToInsert[] = [
+                'id' => $currentStudentId,
+                'user_id' => $currentUserId,
                 'gender' => $gender,
                 'total_paid' => $totalTerbayarAll,
                 'total_debt' => $totalKekuranganAll,
                 'total_expected' => $totalSeharusnyaAll,
                 'created_at' => now(),
                 'updated_at' => now(),
-            ]);
+            ];
 
             $years = [
                 1446 => ['paid' => 4, 'debt' => 5, 'expected' => 6],
@@ -94,7 +105,7 @@ class DatabaseSeeder extends Seeder
                 $expected = (int) preg_replace('/[^0-9]/', '', $row[$cols['expected']]);
 
                 $yearliesToInsert[] = [
-                    'student_id' => $studentId,
+                    'student_id' => $currentStudentId,
                     'hijri_year' => $year,
                     'total_paid' => $paid,
                     'total_debt' => $debt,
@@ -108,7 +119,7 @@ class DatabaseSeeder extends Seeder
                 for ($i = 0; $i < 12; $i++) {
                     $isPaid = $monthsPaid > 0 ? 'true' : 'false';
                     $monthliesToInsert[] = [
-                        'student_id' => $studentId,
+                        'student_id' => $currentStudentId,
                         'hijri_year' => $year,
                         'hijri_month' => $hijriMonths[$i],
                         'is_paid' => $isPaid,
@@ -123,12 +134,22 @@ class DatabaseSeeder extends Seeder
 
         fclose($file);
 
-        // Bulk insert the heavy tables
+        // BULK INSERT EVERYTHING to avoid 30s timeout on slow remote connections!
+        foreach (array_chunk($usersToInsert, 500) as $chunk) {
+            \Illuminate\Support\Facades\DB::table('users')->insert($chunk);
+        }
+        foreach (array_chunk($studentsToInsert, 500) as $chunk) {
+            \Illuminate\Support\Facades\DB::table('students')->insert($chunk);
+        }
         foreach (array_chunk($yearliesToInsert, 500) as $chunk) {
             \Illuminate\Support\Facades\DB::table('mulazamah_yearlies')->insert($chunk);
         }
         foreach (array_chunk($monthliesToInsert, 500) as $chunk) {
             \Illuminate\Support\Facades\DB::table('mulazamah_monthlies')->insert($chunk);
         }
+        
+        // Reset sequence for PostgreSQL since we inserted IDs manually
+        \Illuminate\Support\Facades\DB::statement("SELECT setval('users_id_seq', (SELECT MAX(id) FROM users))");
+        \Illuminate\Support\Facades\DB::statement("SELECT setval('students_id_seq', (SELECT MAX(id) FROM students))");
     }
 }
