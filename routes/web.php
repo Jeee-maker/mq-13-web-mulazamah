@@ -24,16 +24,19 @@ Route::get('/debug-env', function () {
     }
     
     $config = config('database.connections.pgsql');
-    if (isset($config['url'])) {
-        $config['url'] = 'HIDDEN';
-    }
-    if (isset($config['password'])) {
-        $config['password'] = 'HIDDEN';
-    }
+    $parser = new \Illuminate\Support\ConfigurationUrlParser();
+    $parsedConfig = $parser->parseConfiguration($config);
+
+    if (isset($config['url'])) $config['url'] = 'HIDDEN';
+    if (isset($config['password'])) $config['password'] = 'HIDDEN';
+    
+    if (isset($parsedConfig['url'])) $parsedConfig['url'] = 'HIDDEN';
+    if (isset($parsedConfig['password'])) $parsedConfig['password'] = 'HIDDEN';
 
     return response()->json([
         'parsed_url' => $parsed,
         'config' => $config,
+        'parsed_config' => $parsedConfig,
     ]);
 });
 
