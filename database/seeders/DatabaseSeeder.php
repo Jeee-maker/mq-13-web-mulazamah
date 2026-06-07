@@ -74,7 +74,7 @@ class DatabaseSeeder extends Seeder
                 'id' => $currentUserId,
                 'name' => $name,
                 'username' => $username,
-                'password' => Hash::make($password),
+                'password' => Hash::make($password, ['rounds' => 4]),
                 'role' => 'murid',
                 'created_at' => now(),
                 'updated_at' => now(),
