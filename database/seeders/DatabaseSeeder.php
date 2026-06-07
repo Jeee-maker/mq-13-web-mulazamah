@@ -96,7 +96,7 @@ class DatabaseSeeder extends Seeder
                 $monthsPaid = floor($paid / 125000);
 
                 for ($i = 0; $i < 12; $i++) {
-                    $isPaid = $monthsPaid > 0;
+                    $isPaid = $monthsPaid > 0 ? 'true' : 'false';
                     MulazamahMonthly::create([
                         'student_id' => $student->id,
                         'hijri_year' => $year,
