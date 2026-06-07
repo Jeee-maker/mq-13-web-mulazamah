@@ -29,7 +29,7 @@ class DatabaseSeeder extends Seeder
         ]);
 
         // 2. Parse CSV
-        $filePath = storage_path('app/data.csv');
+        $filePath = database_path('data.csv');
         if (!file_exists($filePath)) {
             $this->command->error("CSV file not found at {$filePath}");
             return;
