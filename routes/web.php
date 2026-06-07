@@ -22,9 +22,18 @@ Route::get('/debug-env', function () {
     if (is_array($parsed) && isset($parsed['pass'])) {
         $parsed['pass'] = 'HIDDEN';
     }
+    
+    $config = config('database.connections.pgsql');
+    if (isset($config['url'])) {
+        $config['url'] = 'HIDDEN';
+    }
+    if (isset($config['password'])) {
+        $config['password'] = 'HIDDEN';
+    }
+
     return response()->json([
         'parsed_url' => $parsed,
-        'raw_url_starts_with' => is_string($url) ? substr($url, 0, 15) : null,
+        'config' => $config,
     ]);
 });
 
