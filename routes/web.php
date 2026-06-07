@@ -11,8 +11,29 @@ Route::post('/login', [AuthController::class, 'login'])->name('login.post');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 Route::get('/install-db', function () {
-    \Illuminate\Support\Facades\Artisan::call('migrate:fresh', ['--force' => true, '--seed' => true]);
-    return 'Database berhasil di-install ulang dan diisi data CSV!';
+    try {
+        \Illuminate\Support\Facades\Artisan::call('migrate:fresh', [
+            '--force' => true,
+            '--seed' => true,
+        ]);
+        return "Instalasi Database Berhasil! Tabel dan data telah dibuat. <a href='/'>Kembali ke Beranda</a>";
+    } catch (\Exception $e) {
+        return "Gagal: " . $e->getMessage();
+    }
+});
+
+Route::get('/debug-db', function () {
+    $userCount = \App\Models\User::count();
+    $studentCount = \App\Models\Student::count();
+    $admin = \App\Models\User::where('role', 'admin')->first();
+    $maulid = \App\Models\User::where('username', 'Maulid Ahmad Fadiaz')->first();
+
+    return [
+        'total_users' => $userCount,
+        'total_students' => $studentCount,
+        'admin_exists' => $admin ? 'Yes' : 'No',
+        'maulid_exists' => $maulid ? 'Yes' : 'No',
+    ];
 });
 
 Route::get('/debug-env', function () {
