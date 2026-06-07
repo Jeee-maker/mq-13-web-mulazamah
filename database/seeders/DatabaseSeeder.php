@@ -45,6 +45,9 @@ class DatabaseSeeder extends Seeder
             'Romadhon', 'Syawwal', 'Dzulqo\'dah', 'Dzulhijjah'
         ];
 
+        $yearliesToInsert = [];
+        $monthliesToInsert = [];
+
         while (($row = fgetcsv($file)) !== false) {
             if (count($row) < 22 || empty($row[0])) continue;
 
@@ -57,19 +60,24 @@ class DatabaseSeeder extends Seeder
             $totalKekuranganAll = (int) preg_replace('/[^0-9]/', '', $row[20]);
             $totalSeharusnyaAll = (int) preg_replace('/[^0-9]/', '', $row[21]);
 
-            $user = User::create([
+            // We must insert User and Student row by row to get the IDs
+            $userId = \Illuminate\Support\Facades\DB::table('users')->insertGetId([
                 'name' => $name,
                 'username' => $username,
                 'password' => Hash::make($password),
                 'role' => 'murid',
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
 
-            $student = Student::create([
-                'user_id' => $user->id,
+            $studentId = \Illuminate\Support\Facades\DB::table('students')->insertGetId([
+                'user_id' => $userId,
                 'gender' => $gender,
                 'total_paid' => $totalTerbayarAll,
                 'total_debt' => $totalKekuranganAll,
                 'total_expected' => $totalSeharusnyaAll,
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
 
             $years = [
@@ -85,30 +93,42 @@ class DatabaseSeeder extends Seeder
                 $debt = (int) preg_replace('/[^0-9]/', '', $row[$cols['debt']]);
                 $expected = (int) preg_replace('/[^0-9]/', '', $row[$cols['expected']]);
 
-                MulazamahYearly::create([
-                    'student_id' => $student->id,
+                $yearliesToInsert[] = [
+                    'student_id' => $studentId,
                     'hijri_year' => $year,
                     'total_paid' => $paid,
                     'total_debt' => $debt,
                     'total_expected' => $expected,
-                ]);
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
 
                 $monthsPaid = floor($paid / 125000);
 
                 for ($i = 0; $i < 12; $i++) {
                     $isPaid = $monthsPaid > 0 ? 'true' : 'false';
-                    MulazamahMonthly::create([
-                        'student_id' => $student->id,
+                    $monthliesToInsert[] = [
+                        'student_id' => $studentId,
                         'hijri_year' => $year,
                         'hijri_month' => $hijriMonths[$i],
                         'is_paid' => $isPaid,
                         'amount' => 125000,
-                    ]);
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
                     $monthsPaid--;
                 }
             }
         }
 
         fclose($file);
+
+        // Bulk insert the heavy tables
+        foreach (array_chunk($yearliesToInsert, 500) as $chunk) {
+            \Illuminate\Support\Facades\DB::table('mulazamah_yearlies')->insert($chunk);
+        }
+        foreach (array_chunk($monthliesToInsert, 500) as $chunk) {
+            \Illuminate\Support\Facades\DB::table('mulazamah_monthlies')->insert($chunk);
+        }
     }
 }
