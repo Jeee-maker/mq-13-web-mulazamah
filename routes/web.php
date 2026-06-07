@@ -17,12 +17,14 @@ Route::get('/install-db', function () {
 });
 
 Route::get('/debug-env', function () {
+    $url = env('DATABASE_URL');
+    $parsed = is_string($url) ? parse_url($url) : null;
+    if (is_array($parsed) && isset($parsed['pass'])) {
+        $parsed['pass'] = 'HIDDEN';
+    }
     return response()->json([
-        'has_database_url' => env('DATABASE_URL') !== null,
-        'has_db_url' => env('DB_URL') !== null,
-        'db_connection' => env('DB_CONNECTION'),
-        'host' => config('database.connections.pgsql.host'),
-        'url_config' => config('database.connections.pgsql.url') !== null,
+        'parsed_url' => $parsed,
+        'raw_url_starts_with' => is_string($url) ? substr($url, 0, 15) : null,
     ]);
 });
 
