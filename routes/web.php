@@ -16,6 +16,16 @@ Route::get('/install-db', function () {
     return 'Database berhasil di-install dan diisi data awal!';
 });
 
+Route::get('/debug-env', function () {
+    return response()->json([
+        'has_database_url' => env('DATABASE_URL') !== null,
+        'has_db_url' => env('DB_URL') !== null,
+        'db_connection' => env('DB_CONNECTION'),
+        'host' => config('database.connections.pgsql.host'),
+        'url_config' => config('database.connections.pgsql.url') !== null,
+    ]);
+});
+
 Route::middleware('auth')->group(function () {
     Route::get('/admin/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
     Route::get('/admin/cek-mulazamah', [AdminController::class, 'cekMulazamah'])->name('admin.cek_mulazamah');
